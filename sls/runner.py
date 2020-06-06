@@ -17,17 +17,19 @@ class Runner:
                     + ('_train_' if self.train else 'run_') \
                     + type(agent).__name__
 
-        tf.compat.v1.disable_eager_execution()
-        self.writer = tf.compat.v1.summary.FileWriter(self.path, tf.compat.v1.get_default_graph())
+        #tf.compat.v1.disable_eager_execution()
+        #self.writer = tf.compat.v1.summary.FileWriter(self.path, tf.compat.v1.get_default_graph())
 
         if not self.train and load_path is not None and os.path.isdir(load_path):
                 self.agent.load_model(load_path)
 
     def summarize(self):
+        """
         self.writer.add_summary(tf.compat.v1.Summary(
             value=[tf.compat.v1.Summary.Value(tag='Score per Episode', simple_value=self.score)]),
             self.episode
         )
+        """
         if self.train and self.episode % 10 == 0:
             self.agent.save_model(self.path)
             try:
@@ -38,6 +40,7 @@ class Runner:
         self.score = 0
 
     def run(self, episodes):
+        self.agent.create_model()
         while self.episode <= episodes:
             obs = self.env.reset()
             while True:

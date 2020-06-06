@@ -1,14 +1,15 @@
-from sls.learning.Q_Learning import Q_Learning
+from sls.learning.DQN_Learning import DQN_Learning
 from sls.agents import AbstractAgent
 from sls.minigames.utils import state_of_marine
 
+import numpy as np
 
 class QAgent(AbstractAgent):
 
     def __init__(self, train, screen_size):
         super(QAgent, self).__init__(screen_size)
 
-        self.learner = Q_Learning(range(8),
+        self.learner = DQN_Learning(range(8),
                                   epsilon=1,
                                   descending_epsilon=True,
                                   descend_epsilon_until=500,
@@ -23,8 +24,12 @@ class QAgent(AbstractAgent):
         beacon = self.get_beacon(obs)
         marine = self.get_marine(obs)
         state = state_of_marine(marine, beacon, self.screen_size, 10)
-
-        action = self.learner.get_action(state, obs.reward)
+        #print("st: "+str(state))
+        done = state == (0, 0)
+        action, previous_state = self.learner.get_action(state, obs.reward)
+        self.learner.remember(np.asarray(previous_state), action, obs.reward, np.asarray(state), done)
+        self.learner.replay()
+        self.learner.target_train()
 
         dest = []
 
@@ -52,3 +57,6 @@ class QAgent(AbstractAgent):
 
     def load_model(self, filename):
         self.learner.load_model(filename + '/model.pkl')
+
+    def create_model(self):
+        self.learner.create_models()

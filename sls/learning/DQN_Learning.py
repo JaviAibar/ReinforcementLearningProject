@@ -1,10 +1,17 @@
 import random
+from collections import deque
+
 import pandas as pd
 import os.path
 import math
+import numpy as np
+
+from keras import Sequential
+from keras.layers import Dense
+from keras.optimizers import Adam
 
 
-class Q_Learning:
+class DQN_Learning:
 
     def __init__(self,
                  actions,
@@ -25,6 +32,14 @@ class Q_Learning:
         self.save_table_every_step = save_table_ever_step
         self.path = path
         self.epsilon_min = epsilon_min
+        self.memory = deque(maxlen=2000)
+        self.tau = .125
+
+        self.model = None
+        self.target_model = None
+        self.old_state = None
+
+
 
         if new_table:
             self.q_table = pd.DataFrame(columns=self.actions)
@@ -54,10 +69,10 @@ class Q_Learning:
 
         if self.save_table_every_step:
             self.save_q_table()
-
+        self.old_state = state
         self.old_state_action_pair = (state_as_string, next_action)
 
-        return next_action
+        return next_action, self.old_state
 
     def get_q(self, state, action, default_val):
         self.check_if_state_exists(state, default_val)
@@ -79,16 +94,9 @@ class Q_Learning:
         if rand < self.epsilon:
             action = random.choice(self.actions)
         else:
-            q = [self.get_q(state, a, 1) for a in self.actions]
-            maxQ = max(q)
-            count = q.count(maxQ)
-            if count > 1:
-                best = [i for i in range(len(self.actions)) if q[i] == maxQ]
-                i = random.choice(best)
-            else:
-                i = q.index(maxQ)
-
-            action = self.actions[i]
+            array_state = np.asarray(eval(state))
+            print("state: "+str(array_state))
+            action = np.argmax(self.model.predict(array_state)[0])
 
         return action
 
@@ -105,6 +113,29 @@ class Q_Learning:
 
         if math.isnan(q_val + self.alpha * (reward + q_value_next_state - q_val)):
             print("NAN")
+
+    def replay(self):
+        batch_size = 32
+        if len(self.memory) < batch_size:
+            return
+        samples = random.sample(self.memory, batch_size)
+        for sample in samples:
+            state, action, reward, new_state, done = sample
+            target = self.target_model.predict(state)
+            if done:
+                target[0][action] = reward
+            else:
+                Q_future = max(
+                    self.target_model.predict(new_state)[0])
+                target[0][action] = reward + Q_future * self.gamma
+            self.model.fit(state, target, epochs=1, verbose=0)
+
+    def target_train(self):
+        weights = self.model.get_weights()
+        target_weights = self.target_model.get_weights()
+        for i in range(len(target_weights)):
+            target_weights[i] = weights[i]
+        self.target_model.set_weights(target_weights)
 
     def descend_epsilon(self):
         if self.delta_epsilon > 0 and \
@@ -126,3 +157,21 @@ class Q_Learning:
         print(self.q_table)
         pd.set_option('expand_frame_repr', True)
         pd.reset_option('display.max_columns')
+
+    def create_model(self):
+        model = Sequential()
+        model.add(Dense(24, input_dim=1,
+                        activation="relu"))
+        model.add(Dense(48, activation="relu"))
+        model.add(Dense(24, activation="relu"))
+        model.add(Dense(len(self.actions)))
+        model.compile(loss="mean_squared_error",
+                      optimizer=Adam(lr=self.alpha))
+        return model
+
+    def create_models(self):
+        self.model = self.create_model()
+        self.target_model = self.create_model()
+
+    def remember(self, state, action, reward, new_state, done):
+        self.memory.append([state, action, reward, new_state, done])

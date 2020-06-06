@@ -1,6 +1,6 @@
 from absl import app
 from sls import Env, Runner
-from sls.agents.SarsaAgent import SarsaAgent
+from sls.agents.QAgent import QAgent
 
 _CONFIG = dict(
     episodes=100,
@@ -8,7 +8,7 @@ _CONFIG = dict(
     minimap_size=32,
     visualize=False,
     train=False,
-    agent=SarsaAgent,
+    agent=QAgent,
     load_path='./graphs/train_SarsaAgent_190226_1942'
 )
 
