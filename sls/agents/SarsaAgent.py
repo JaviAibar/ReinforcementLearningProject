@@ -3,10 +3,10 @@ from sls.agents import AbstractAgent
 from sls.minigames.utils import state_of_marine
 
 
-class QAgent(AbstractAgent):
+class SarsaAgent(AbstractAgent):
 
     def __init__(self, train, screen_size):
-        super(QAgent, self).__init__(screen_size)
+        super(SarsaAgent, self).__init__(screen_size)
 
         self.learner = Q_Learning(range(8),
                                   epsilon=1,

@@ -16,7 +16,7 @@ class Q_Learning:
                  descending_epsilon=False,
                  epsilon_min=0.1,
                  descend_epsilon_until=0,
-                 path="learning/Q_Tables/q_table_sarsa.pkl"):
+                 path="learning/Q_Tables/q_table.pkl"):
 
         self.actions = actions
         self.epsilon = epsilon
@@ -93,9 +93,10 @@ class Q_Learning:
         return action
 
     def learn(self, state_action_pair, reward, new_state):
-        q_value_next_state = self.get_q(new_state, self.choose_action(new_state), 1)
-        q_value_next_state_discounted = self.gamma * q_value_next_state
-        self.learn_q(state_action_pair, reward, q_value_next_state_discounted)
+        next_actions = [self.get_q(new_state, a, 1) for a in self.actions]
+        best_next_action = max(next_actions)
+        q_value_next_state = self.gamma * best_next_action
+        self.learn_q(state_action_pair, reward, q_value_next_state)
 
     def learn_q(self, state_action_pair, reward, q_value_next_state):
         q_val = self.get_q(state_action_pair[0], state_action_pair[1], 1)
